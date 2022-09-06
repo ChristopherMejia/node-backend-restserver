@@ -3,25 +3,21 @@ const bcryptjs = require('bcryptjs');
 
 const Usuario = require('../models/usuario');
 
-const usuariosGet = (req = request, res = response) => {
+const usuariosGet = async(req = request, res = response) => {
 
-    const {q, nombre, apikey, limit, page = 1} = req.query;
-    res.json({
-        msg: 'get API - controlador',
-        q,
-        nombre,
-        apikey,
-        limit,
-        page
-    });
+    // const {q, nombre, apikey, limit, page = 1} = req.query;
+    const { limite, desde } = req.query;
+    const usuarios = await Usuario.find()
+        .skip( Number(desde) )
+        .limit( Number(limite) );
+
+    res.json({ usuarios });
 }
 
 const usuariosPost = async (req, res = response) => {
 
     const { nombre, correo, password, role, } = req.body;
     const usuario = new Usuario( {nombre, correo, password, role } );
-
-    /// Verificar si el correo existe
 
     /// Encriptar la contraseña
     const salt = bcryptjs.genSaltSync();
@@ -33,14 +29,21 @@ const usuariosPost = async (req, res = response) => {
     res.json({ usuario });
 }
 
-const usuariosPut = (req, res = response) => {
+const usuariosPut = async (req, res = response) => {
 
     const {id} = req.params;
+    const { _id, password, google, correo, ...requestBody } = req.body;
 
-    res.json({
-        msg: 'put API - controlador',
-        id
-    });
+    //TODO validar contra base de datos
+    if( password ) {
+        /// Encriptar la contraseña
+        const salt = bcryptjs.genSaltSync();
+        requestBody.password = bcryptjs.hashSync( password, salt );
+    }
+
+    const usuario = await Usuario.findByIdAndUpdate( id, requestBody, { new: true});
+
+    res.json({ usuario });
 }
 
 const usuariosPatch = (req, res = response) => {
@@ -50,10 +53,16 @@ const usuariosPatch = (req, res = response) => {
     });
 }
 
-const usuariosDelete = (req, res = response) => {
+const usuariosDelete = async(req, res = response) => {
 
-    res.json({
-        msg: 'delete API - controlador'
+    const { id } = req.params;
+    //fisicamente se borra de la bdd
+    // const usuario = await Usuario.findByIdAndDelete( id );
+
+    const usuario = await Usuario.findByIdAndUpdate( id, { estado: false}, { new: true} );
+
+    res.json({       
+        usuario
     });
 }
 
